@@ -34,7 +34,7 @@ def opposite_word(word):
     df_alltaigigo_filterd = df_alltaigigo_filterd.sort_values(by='sim_inp_org', ascending=False)
     org = df_alltaigigo_filterd.iloc[0].org
     taigigo = df_alltaigigo_filterd.iloc[0].taigigo
-    result = model.most_similar(positive=[word, org], negative=[taigigo], topn=15)[0][0]
+    result = model.most_similar(positive=[word, org], negative=[taigigo], topn=15)
     return result
 
 def check_hinsi(taisyou_word):
@@ -56,9 +56,23 @@ def most_niteiru(input_word, entries_list):
     results = [[similarity, entry] for (entry, similarity) in zip(entries_list, similarities)]
     return sorted(results, reverse=True)
 
-df_alltaigigo_filterd = df_alltaigigo.sort_values(by='sort_val', ascending=False)
+def parse_text(text):
+    
+    change_list = []
+
+    for t in check_hinsi(text):
+        if t[1].split('-')[0] in ['名詞', '動詞']:
+            change_list.append(most_niteiru(t[0], list(map(lambda x: x[0], opposite_word(t[0])))[:5])[0][1])
+        else:
+            change_list.append(t[0])
+    
+    return ''.join(change_list)
+
+# df_alltaigigo_filterd = df_alltaigigo.sort_values(by='sort_val', ascending=False)
+
 
 def get_natural_taigigo_NEO(input_word, input_hinsi):
+    df_alltaigigo_filterd = create_filterd_taigigo_list(input_word)
     FinalKouhoList = []
 
     for index, rows in df_alltaigigo_filterd.iterrows():
@@ -85,3 +99,4 @@ def get_natural_taigigo_NEO(input_word, input_hinsi):
     nita_word_list = most_niteiru(input_word, FinalKouhoList_unique)[:3]
 
     return nita_word_list
+

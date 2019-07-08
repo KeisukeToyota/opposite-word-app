@@ -2,14 +2,15 @@ from gensim.models.word2vec import Word2Vec
 import gensim
 import pandas as pd
 import MeCab
+import random
 
-modelW_path = './models/word2vec.gensim.model'
-modelW = Word2Vec.load(modelW_path)
+# modelW_path = './models/word2vec.gensim.model'
+# modelW = Word2Vec.load(modelW_path)
 
 modelV_path = './models/model.vec'
 modelV = gensim.models.KeyedVectors.load_word2vec_format(modelV_path, binary=False)
 
-model =  modelW
+model =  modelV
 
 df_alltaigigo = pd.read_csv('taigigo.csv')
 
@@ -68,9 +69,6 @@ def parse_text(text):
     
     return ''.join(change_list)
 
-# df_alltaigigo_filterd = df_alltaigigo.sort_values(by='sort_val', ascending=False)
-
-
 def get_natural_taigigo_NEO(input_word, input_hinsi):
     df_alltaigigo_filterd = create_filterd_taigigo_list(input_word)
     FinalKouhoList = []
@@ -100,3 +98,55 @@ def get_natural_taigigo_NEO(input_word, input_hinsi):
 
     return nita_word_list
 
+def get_Taigigo_bun(inputtext):
+    mecab = MeCab.Tagger("-Ochasen")
+    resulttext = ""
+
+    trline = inputtext.replace(u'\t', u'　')
+
+    parsed_line = mecab.parse(trline)
+    wordsinfo_list = parsed_line.split('\n')
+
+    for wordsinfo in wordsinfo_list:
+        info_list = wordsinfo.split('\t')
+
+        if(len(info_list)>2):
+            if( info_list[3].startswith('助詞') or 
+                info_list[3].startswith('副詞-助詞類接続') or
+                info_list[3].startswith('名詞-特殊-助動詞語幹') or
+                info_list[3].startswith('フィラー') or
+                info_list[3].startswith('動詞-接尾') or
+                info_list[3].startswith('記号') or
+                info_list[3].startswith('接頭詞') or
+                info_list[3].startswith('助動詞') or
+                info_list[0]==u'の'
+                ):
+                    resulttext+=info_list[0]
+            else :
+                word = info_list[2]
+
+                word_hinsi = info_list[3]
+
+                try:
+                    out = model[word]
+                    taigigo_kouho_list = get_natural_taigigo_NEO(word, word_hinsi)
+                    filterd = list(filter(lambda x: x[0] > 0.9, taigigo_kouho_list))
+                    print(taigigo_kouho_list)
+                    if len(filterd) > 0:
+                        taigigo = random.choice(filterd)[1]
+                    else:
+                        taigigo = random.choice(taigigo_kouho_list)[1]
+                    resulttext += taigigo
+
+                except KeyError:
+                    resulttext += word
+
+
+    return resulttext
+
+def get_Taigigo_bun_kurikaesi(input_bun, kurikaesi):
+    print(input_bun)
+    print("== 結果 ==")
+    for i in range(kurikaesi):
+        print(get_Taigigo_bun(input_bun))
+    print("  ")
